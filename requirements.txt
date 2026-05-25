@@ -1,0 +1,4 @@
+opencv-python>=4.8.0
+mediapipe>=0.10.0
+pynput>=1.7.6
+screeninfo>=0.8.1
