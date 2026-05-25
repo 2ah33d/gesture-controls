@@ -101,6 +101,19 @@ class DebugOverlay:
                 color = _LANDMARK_COLOR_MAP.get(idx, (255, 255, 255))
                 cv2.circle(frame, pt, 3, color, -1, cv2.LINE_AA)
 
+            # Extended tips visualization
+            for tip_idx, dip_idx, color in [(4, 3, (0, 0, 255)), (8, 7, (0, 255, 0)), (12, 11, (255, 0, 0))]:
+                tip_pt = pts[tip_idx]
+                dip_pt = pts[dip_idx]
+                dx = tip_pt[0] - dip_pt[0]
+                dy = tip_pt[1] - dip_pt[1]
+                ext_x = int(tip_pt[0] + dx * 0.25)
+                ext_y = int(tip_pt[1] + dy * 0.25)
+                # Draw a hollow circle around the extended point
+                cv2.circle(frame, (ext_x, ext_y), 5, color, 2, cv2.LINE_AA)
+                # Draw a thin line connecting the physical tip to the extended tip
+                cv2.line(frame, tip_pt, (ext_x, ext_y), color, 1, cv2.LINE_AA)
+
             # Tracking landmark highlight
             if tracking_landmark == "palm_center":
                 # Average of MCP joints 5, 9, 13, 17

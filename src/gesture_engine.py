@@ -12,6 +12,11 @@ from dataclasses import dataclass
 
 
 @dataclass
+class Point:
+    x: float
+    y: float
+
+@dataclass
 class GestureState:
     """Snapshot of the gesture state for a single frame."""
 
@@ -68,20 +73,30 @@ class GestureEngine:
     # -- helpers ----------------------------------------------------------
 
     @staticmethod
+    def _get_extended_tip(landmarks, tip_idx: int, dip_idx: int, extension: float = 0.25) -> Point:
+        """Projects a point further along the line from the DIP joint to the TIP.
+        This compensates for MediaPipe placing the tip landmark slightly below
+        the actual physical end of the user's finger.
+        """
+        tip = landmarks[tip_idx]
+        dip = landmarks[dip_idx]
+        dx = tip.x - dip.x
+        dy = tip.y - dip.y
+        return Point(tip.x + dx * extension, tip.y + dy * extension)
+
+    @staticmethod
     def _normalized_distance(
+        pt_a,
+        pt_b,
         landmarks,
-        idx_a: int,
-        idx_b: int,
         ref_idx_a: int = 5,
         ref_idx_b: int = 17,
     ) -> float:
-        """Euclidean distance between two landmarks, normalised by the
+        """Euclidean distance between two arbitrary points, normalised by the
         reference distance (default: index MCP to pinky MCP = palm width).
         """
-        a = landmarks[idx_a]
-        b = landmarks[idx_b]
-        dx = a.x - b.x
-        dy = a.y - b.y
+        dx = pt_a.x - pt_b.x
+        dy = pt_a.y - pt_b.y
         raw = math.hypot(dx, dy)
 
         # Normalise by palm width
@@ -117,8 +132,13 @@ class GestureEngine:
         """
         state = GestureState()
 
+        # Compute extended tips to bridge the physical vs camera gap
+        thumb_ext = self._get_extended_tip(landmarks, 4, 3, extension=0.25)
+        index_ext = self._get_extended_tip(landmarks, 8, 7, extension=0.25)
+        middle_ext = self._get_extended_tip(landmarks, 12, 11, extension=0.25)
+
         # ---- Left click: thumb(4) – index(8) pinch ----
-        dist_left = self._normalized_distance(landmarks, 4, 8)
+        dist_left = self._normalized_distance(thumb_ext, index_ext, landmarks)
         
         target_left_down = self._prev_left_down
         if self._prev_left_down:
@@ -140,7 +160,7 @@ class GestureEngine:
         state.left_changed = state.left_down != self._prev_left_down
 
         # ---- Right click: thumb(4) – middle(12) pinch ----
-        dist_right = self._normalized_distance(landmarks, 4, 12)
+        dist_right = self._normalized_distance(thumb_ext, middle_ext, landmarks)
         
         target_right_down = self._prev_right_down
         if self._prev_right_down:
