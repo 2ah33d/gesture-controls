@@ -80,6 +80,8 @@ def main() -> None:
           f"debug={'on' if debug_mode else 'off'}")
     print("[GestureFlow] Press 'g' to toggle active/paused, 'q' or ESC to quit.")
 
+    scroll_accumulator: float = 0.0
+
     try:
         while True:
             # ── 1. Capture frame ─────────────────────────────────────
@@ -141,10 +143,14 @@ def main() -> None:
                             dispatcher.mouse_up("right")
 
                     # Scroll
-                    if gesture_state.scroll_active:
-                        delta = int(gesture_state.scroll_delta)
-                        if delta != 0:
-                            dispatcher.scroll(delta)
+                    if gesture_state.scroll_active and gesture_state.scroll_delta != 0:
+                        scroll_accumulator += gesture_state.scroll_delta
+                        if abs(scroll_accumulator) >= 1.0:
+                            clicks = int(scroll_accumulator)
+                            dispatcher.scroll(clicks)
+                            scroll_accumulator -= clicks
+                    else:
+                        scroll_accumulator = 0.0
 
             # ── 7. FPS calculation ───────────────────────────────────
             dt = now - prev_time

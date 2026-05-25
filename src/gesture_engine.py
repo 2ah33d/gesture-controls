@@ -186,29 +186,42 @@ class GestureEngine:
             
         state.right_changed = state.right_down != self._prev_right_down
 
-        # ---- Scroll: index + middle extended, ring + pinky curled ----
+        # ---- Scroll: index + middle extended, ring + pinky curled, thumb tucked ----
         index_extended = self._is_finger_extended(landmarks, 8, 6)
         middle_extended = self._is_finger_extended(landmarks, 12, 10)
         ring_curled = not self._is_finger_extended(landmarks, 16, 14)
         pinky_curled = not self._is_finger_extended(landmarks, 20, 18)
 
-        state.scroll_active = (
-            index_extended and middle_extended and ring_curled and pinky_curled
+        # Thumb tucked: extended thumb tip is close to the palm center (red dot)
+        palm_center = Point(
+            (landmarks[5].x + landmarks[9].x + landmarks[13].x + landmarks[17].x) / 4.0,
+            (landmarks[5].y + landmarks[9].y + landmarks[13].y + landmarks[17].y) / 4.0
         )
+        thumb_tucked_dist = self._normalized_distance(thumb_ext, palm_center, landmarks)
+        
+        # 0.4 is much stricter than the previous 1.0. It requires the thumb 
+        # to actually be folded inwards towards the red dot.
+        thumb_tucked = thumb_tucked_dist < 0.4
 
-        if state.scroll_active:
-            # Use the midpoint of index and middle tips for vertical tracking.
-            scroll_y = (landmarks[8].y + landmarks[12].y) / 2.0
-            if self._prev_scroll_active and self._prev_scroll_y is not None:
-                dy = scroll_y - self._prev_scroll_y
-                direction = 1.0 if self.scroll_natural else -1.0
-                state.scroll_delta = dy * self.scroll_sensitivity * direction
-            else:
-                state.scroll_delta = 0.0
-            self._prev_scroll_y = scroll_y
-        else:
-            state.scroll_delta = 0.0
-            self._prev_scroll_y = None
+        # Distance between index and middle fingers (using extended tips for accuracy)
+        fingers_dist = self._normalized_distance(index_ext, middle_ext, landmarks)
+
+        state.scroll_active = False
+        state.scroll_delta = 0.0
+
+        if index_extended and middle_extended and ring_curled and pinky_curled and thumb_tucked:
+            state.scroll_active = True
+            
+            # Base scroll speed (approx 0.15 clicks per frame, scaled by sensitivity)
+            # Default sensitivity is 5.0, so this gives ~0.75 clicks/frame (22 clicks/sec)
+            # We'll reduce the base factor so default sensitivity gives a nice reading speed.
+            base_speed = 0.08 * self.scroll_sensitivity 
+            direction = 1.0 if self.scroll_natural else -1.0
+            
+            if fingers_dist > 0.7:  # Wide peace sign -> scroll down
+                state.scroll_delta = -base_speed * direction
+            elif fingers_dist < 0.45:  # Fingers close -> scroll up
+                state.scroll_delta = base_speed * direction
 
         # ---- Store state for next frame ----
         self._prev_left_down = state.left_down
