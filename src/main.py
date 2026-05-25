@@ -183,6 +183,10 @@ def main() -> None:
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord("q") or key == 27:  # 'q' or ESC
                     break
+                
+                # Check if user clicked the 'X' button to close the window
+                if cv2.getWindowProperty("GestureFlow", cv2.WND_PROP_VISIBLE) < 1:
+                    break
                 if key == ord("g"):  # toggle active/paused
                     is_active = not is_active
                     print(f"[GestureFlow] {'ACTIVE' if is_active else 'PAUSED'}")

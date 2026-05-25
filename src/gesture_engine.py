@@ -46,11 +46,11 @@ class GestureEngine:
 
     def __init__(
         self,
-        pinch_threshold: float = 0.12,
-        release_threshold: float = 0.18,
+        pinch_threshold: float = 0.15,
+        release_threshold: float = 0.22,
         scroll_sensitivity: float = 5.0,
         scroll_natural: bool = True,
-        debounce_frames: int = 2,
+        debounce_frames: int = 1,
     ) -> None:
         self.pinch_threshold = pinch_threshold
         self.release_threshold = release_threshold
@@ -133,9 +133,9 @@ class GestureEngine:
         state = GestureState()
 
         # Compute extended tips to bridge the physical vs camera gap
-        thumb_ext = self._get_extended_tip(landmarks, 4, 3, extension=0.25)
-        index_ext = self._get_extended_tip(landmarks, 8, 7, extension=0.25)
-        middle_ext = self._get_extended_tip(landmarks, 12, 11, extension=0.25)
+        thumb_ext = self._get_extended_tip(landmarks, 4, 3, extension=0.40)
+        index_ext = self._get_extended_tip(landmarks, 8, 7, extension=0.40)
+        middle_ext = self._get_extended_tip(landmarks, 12, 11, extension=0.40)
 
         # ---- Left click: thumb(4) – index(8) pinch ----
         dist_left = self._normalized_distance(thumb_ext, index_ext, landmarks)

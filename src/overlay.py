@@ -107,8 +107,8 @@ class DebugOverlay:
                 dip_pt = pts[dip_idx]
                 dx = tip_pt[0] - dip_pt[0]
                 dy = tip_pt[1] - dip_pt[1]
-                ext_x = int(tip_pt[0] + dx * 0.25)
-                ext_y = int(tip_pt[1] + dy * 0.25)
+                ext_x = int(tip_pt[0] + dx * 0.40)
+                ext_y = int(tip_pt[1] + dy * 0.40)
                 # Draw a hollow circle around the extended point
                 cv2.circle(frame, (ext_x, ext_y), 5, color, 2, cv2.LINE_AA)
                 # Draw a thin line connecting the physical tip to the extended tip

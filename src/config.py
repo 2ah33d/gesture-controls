@@ -56,10 +56,10 @@ class Config:
         self.preferred_hand: str = self._get("hand", "preferred", "right")
 
         # ── thresholds ────────────────────────────────────────────────
-        self.pinch_threshold: float = self._getfloat("thresholds", "pinch_threshold", 0.12)
-        self.release_threshold: float = self._getfloat("thresholds", "release_threshold", 0.18)
+        self.pinch_threshold: float = self._getfloat("thresholds", "pinch_threshold", 0.15)
+        self.release_threshold: float = self._getfloat("thresholds", "release_threshold", 0.22)
         self.confidence_min: float = self._getfloat("thresholds", "confidence_min", 0.7)
-        self.debounce_frames: int = self._getint("thresholds", "debounce_frames", 2)
+        self.debounce_frames: int = self._getint("thresholds", "debounce_frames", 1)
 
         # ── smoothing (1€ filter parameters) ──────────────────────────
         self.min_cutoff: float = self._getfloat("smoothing", "min_cutoff", 0.4)
