@@ -7,6 +7,8 @@ cursor mapping, input dispatch, and debug overlay into a single loop.
 import sys
 import os
 import time
+import subprocess
+import threading
 
 # Ensure the project root is on the path so config.ini / sibling modules resolve.
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,6 +66,7 @@ def main() -> None:
         scroll_sensitivity=cfg.scroll_sensitivity,
         scroll_natural=cfg.scroll_natural,
         debounce_frames=cfg.debounce_frames,
+        release_debounce_frames=cfg.release_debounce_frames,
     )
 
     dispatcher = InputDispatcher()
@@ -81,6 +84,7 @@ def main() -> None:
     print("[GestureFlow] Press 'g' to toggle active/paused, 'q' or ESC to quit.")
 
     scroll_accumulator: float = 0.0
+    _easter_egg_cooldown: float = 0.0  # timestamp after which egg can fire again
 
     try:
         while True:
@@ -151,6 +155,23 @@ def main() -> None:
                             scroll_accumulator -= clicks
                     else:
                         scroll_accumulator = 0.0
+
+                    # ---- 🖕 Easter egg ----------------------------------------
+                    if gesture_state.middle_finger_salute and now > _easter_egg_cooldown:
+                        _easter_egg_cooldown = now + 10.0  # 10 sec cooldown
+
+                        def _fire_easter_egg():
+                            subprocess.Popen(["notepad.exe"])
+                            time.sleep(1.2)  # wait for Notepad to open
+                            from pynput.keyboard import Controller as KB, Key
+                            kb = KB()
+                            msg = "That's not nice!"
+                            for ch in msg:
+                                kb.press(ch)
+                                kb.release(ch)
+                                time.sleep(0.04)
+
+                        threading.Thread(target=_fire_easter_egg, daemon=True).start()
 
             # ── 7. FPS calculation ───────────────────────────────────
             dt = now - prev_time

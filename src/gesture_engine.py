@@ -26,6 +26,7 @@ class GestureState:
     right_changed: bool = False
     scroll_active: bool = False
     scroll_delta: float = 0.0
+    middle_finger_salute: bool = False  # 🖕 easter egg
 
 
 class GestureEngine:
@@ -51,12 +52,14 @@ class GestureEngine:
         scroll_sensitivity: float = 5.0,
         scroll_natural: bool = True,
         debounce_frames: int = 1,
+        release_debounce_frames: int = 1,
     ) -> None:
         self.pinch_threshold = pinch_threshold
         self.release_threshold = release_threshold
         self.scroll_sensitivity = scroll_sensitivity
         self.scroll_natural = scroll_natural
         self.debounce_frames = debounce_frames
+        self.release_debounce_frames = release_debounce_frames
 
         # Previous frame state.
         self._prev_left_down: bool = False
@@ -116,6 +119,22 @@ class GestureEngine:
         """
         return landmarks[tip_idx].y < landmarks[pip_idx].y
 
+    @staticmethod
+    def _is_palm_facing_away(landmarks, preferred_hand: str = "Right") -> bool:
+        """Detect if the back of the hand is facing the camera (hand flipped over).
+
+        When a right hand faces palm-toward-camera (normal), the thumb MCP [2]
+        sits to the right of the pinky MCP [17] in the unflipped frame
+        (higher x). When the hand is flipped over, this relationship inverts.
+        Opposite logic applies for the left hand.
+        """
+        thumb_mcp_x = landmarks[2].x
+        pinky_mcp_x = landmarks[17].x
+        if preferred_hand.lower() == "right":
+            return thumb_mcp_x < pinky_mcp_x   # thumb crossed to the other side
+        else:
+            return thumb_mcp_x > pinky_mcp_x
+
     # -- public API -------------------------------------------------------
 
     def update(self, landmarks) -> GestureState:
@@ -144,7 +163,7 @@ class GestureEngine:
         if self._prev_left_down:
             if dist_left > self.release_threshold:
                 self._left_release_count += 1
-                if self._left_release_count >= self.debounce_frames:
+                if self._left_release_count >= self.release_debounce_frames:
                     target_left_down = False
             else:
                 self._left_release_count = 0
@@ -166,7 +185,7 @@ class GestureEngine:
         if self._prev_right_down:
             if dist_right > self.release_threshold:
                 self._right_release_count += 1
-                if self._right_release_count >= self.debounce_frames:
+                if self._right_release_count >= self.release_debounce_frames:
                     target_right_down = False
             else:
                 self._right_release_count = 0
@@ -222,6 +241,16 @@ class GestureEngine:
                 state.scroll_delta = -base_speed * direction
             elif fingers_dist < 0.45:  # Fingers close -> scroll up
                 state.scroll_delta = base_speed * direction
+
+        # ---- 🖕 Easter egg: middle finger salute (hand flipped, only middle up) ----
+        palm_flipped = self._is_palm_facing_away(landmarks)
+        only_middle_up = (
+            self._is_finger_extended(landmarks, 12, 10)   # middle extended
+            and not self._is_finger_extended(landmarks, 8, 6)    # index curled
+            and not self._is_finger_extended(landmarks, 16, 14)  # ring curled
+            and not self._is_finger_extended(landmarks, 20, 18)  # pinky curled
+        )
+        state.middle_finger_salute = palm_flipped and only_middle_up
 
         # ---- Store state for next frame ----
         self._prev_left_down = state.left_down
