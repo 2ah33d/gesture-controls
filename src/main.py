@@ -9,6 +9,7 @@ import os
 import time
 import subprocess
 import threading
+import random
 
 # Ensure the project root is on the path so config.ini / sibling modules resolve.
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -165,7 +166,11 @@ def main() -> None:
                             time.sleep(1.2)  # wait for Notepad to open
                             from pynput.keyboard import Controller as KB, Key
                             kb = KB()
-                            msg = "That's not nice!"
+                            msg = random.choice([
+                                "That's not nice! ",
+                                "Not cool man! ",
+                                "Hey! Stop That! ",
+                            ])
                             for ch in msg:
                                 kb.press(ch)
                                 kb.release(ch)
