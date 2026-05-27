@@ -86,6 +86,8 @@ def main() -> None:
 
     scroll_accumulator: float = 0.0
     _easter_egg_cooldown: float = 0.0  # timestamp after which egg can fire again
+    _zoom_last_fired: float = 0.0      # rate-limit repeated zoom steps while held
+    _ZOOM_REPEAT_INTERVAL: float = 0.4  # seconds between zoom steps when held
 
     try:
         while True:
@@ -156,6 +158,27 @@ def main() -> None:
                             scroll_accumulator -= clicks
                     else:
                         scroll_accumulator = 0.0
+
+                    # Zoom In (thumb + ring) / Zoom Out (thumb + pinky)
+                    # Fire on the leading edge, then repeat every _ZOOM_REPEAT_INTERVAL
+                    zoom_triggered = False
+                    if gesture_state.zoom_in_changed and gesture_state.zoom_in:
+                        dispatcher.zoom_in()
+                        _zoom_last_fired = now
+                        zoom_triggered = True
+                    elif gesture_state.zoom_in and not zoom_triggered:
+                        if now - _zoom_last_fired >= _ZOOM_REPEAT_INTERVAL:
+                            dispatcher.zoom_in()
+                            _zoom_last_fired = now
+
+                    if gesture_state.zoom_out_changed and gesture_state.zoom_out:
+                        dispatcher.zoom_out()
+                        _zoom_last_fired = now
+                        zoom_triggered = True
+                    elif gesture_state.zoom_out and not zoom_triggered:
+                        if now - _zoom_last_fired >= _ZOOM_REPEAT_INTERVAL:
+                            dispatcher.zoom_out()
+                            _zoom_last_fired = now
 
                     # ---- 🖕 Easter egg ----------------------------------------
                     if gesture_state.middle_finger_salute and now > _easter_egg_cooldown:

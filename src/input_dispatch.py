@@ -7,6 +7,7 @@ application never touches pynput directly.
 from __future__ import annotations
 
 from pynput.mouse import Button, Controller
+from pynput.keyboard import Controller as KeyboardController, Key
 
 
 class InputDispatcher:
@@ -19,6 +20,7 @@ class InputDispatcher:
 
     def __init__(self) -> None:
         self._mouse = Controller()
+        self._keyboard = KeyboardController()
 
     def move_to(self, x: int, y: int) -> None:
         """Set the absolute cursor position."""
@@ -35,3 +37,15 @@ class InputDispatcher:
     def scroll(self, clicks: int) -> None:
         """Scroll vertically by *clicks* (positive = up, negative = down)."""
         self._mouse.scroll(0, clicks)
+
+    def zoom_in(self) -> None:
+        """Send Ctrl+= (zoom in — universal shortcut for browsers, Office, OneNote)."""
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("=")
+            self._keyboard.release("=")
+
+    def zoom_out(self) -> None:
+        """Send Ctrl+- (zoom out)."""
+        with self._keyboard.pressed(Key.ctrl):
+            self._keyboard.press("-")
+            self._keyboard.release("-")

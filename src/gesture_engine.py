@@ -26,6 +26,10 @@ class GestureState:
     right_changed: bool = False
     scroll_active: bool = False
     scroll_delta: float = 0.0
+    zoom_in: bool = False   # thumb + ring pinch
+    zoom_in_changed: bool = False
+    zoom_out: bool = False  # thumb + pinky pinch
+    zoom_out_changed: bool = False
     middle_finger_salute: bool = False  # 🖕 easter egg
 
 
@@ -72,6 +76,14 @@ class GestureEngine:
         self._left_release_count: int = 0
         self._right_pinch_count: int = 0
         self._right_release_count: int = 0
+        self._zoom_in_pinch_count: int = 0
+        self._zoom_in_release_count: int = 0
+        self._zoom_out_pinch_count: int = 0
+        self._zoom_out_release_count: int = 0
+
+        # Zoom state
+        self._prev_zoom_in: bool = False
+        self._prev_zoom_out: bool = False
 
     # -- helpers ----------------------------------------------------------
 
@@ -242,6 +254,53 @@ class GestureEngine:
             elif fingers_dist < 0.45:  # Fingers close -> scroll up
                 state.scroll_delta = base_speed * direction
 
+        # ---- Zoom In: thumb(4) – ring(16) pinch ----
+        ring_ext = self._get_extended_tip(landmarks, 16, 15, extension=0.40)
+        dist_zoom_in = self._normalized_distance(thumb_ext, ring_ext, landmarks)
+
+        target_zoom_in = self._prev_zoom_in
+        if self._prev_zoom_in:
+            if dist_zoom_in > self.release_threshold:
+                self._zoom_in_release_count += 1
+                if self._zoom_in_release_count >= self.release_debounce_frames:
+                    target_zoom_in = False
+            else:
+                self._zoom_in_release_count = 0
+        else:
+            if dist_zoom_in < self.pinch_threshold:
+                self._zoom_in_pinch_count += 1
+                if self._zoom_in_pinch_count >= self.debounce_frames:
+                    target_zoom_in = True
+            else:
+                self._zoom_in_pinch_count = 0
+
+        # ---- Zoom Out: thumb(4) – pinky(20) pinch ----
+        pinky_ext = self._get_extended_tip(landmarks, 20, 19, extension=0.40)
+        dist_zoom_out = self._normalized_distance(thumb_ext, pinky_ext, landmarks)
+
+        target_zoom_out = self._prev_zoom_out
+        if self._prev_zoom_out:
+            if dist_zoom_out > self.release_threshold:
+                self._zoom_out_release_count += 1
+                if self._zoom_out_release_count >= self.release_debounce_frames:
+                    target_zoom_out = False
+            else:
+                self._zoom_out_release_count = 0
+        else:
+            if dist_zoom_out < self.pinch_threshold:
+                self._zoom_out_pinch_count += 1
+                if self._zoom_out_pinch_count >= self.debounce_frames:
+                    target_zoom_out = True
+            else:
+                self._zoom_out_pinch_count = 0
+
+        # Suppress zoom if any click or scroll is active (avoid conflicts)
+        busy = state.left_down or state.right_down or state.scroll_active
+        state.zoom_in = target_zoom_in and not busy
+        state.zoom_in_changed = state.zoom_in != self._prev_zoom_in
+        state.zoom_out = target_zoom_out and not busy
+        state.zoom_out_changed = state.zoom_out != self._prev_zoom_out
+
         # ---- 🖕 Easter egg: middle finger salute (hand flipped, only middle up) ----
         palm_flipped = self._is_palm_facing_away(landmarks)
         only_middle_up = (
@@ -256,5 +315,7 @@ class GestureEngine:
         self._prev_left_down = state.left_down
         self._prev_right_down = state.right_down
         self._prev_scroll_active = state.scroll_active
+        self._prev_zoom_in = state.zoom_in
+        self._prev_zoom_out = state.zoom_out
 
         return state

@@ -183,6 +183,10 @@ class DebugOverlay:
                 labels.append(("RIGHT CLICK", (255, 0, 255)))  # Magenta
             if getattr(gesture_state, "scroll_active", False):
                 labels.append(("SCROLLING", (255, 255, 0)))    # Cyan
+            if getattr(gesture_state, "zoom_in", False):
+                labels.append(("ZOOM IN", (0, 255, 128)))      # Spring green
+            if getattr(gesture_state, "zoom_out", False):
+                labels.append(("ZOOM OUT", (0, 128, 255)))     # Sky blue
 
             x_offset = 10
             for text, color in labels:
